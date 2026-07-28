@@ -1,0 +1,121 @@
+# Lightweight Browsing
+
+Chrome Manifest V3 extension that blocks well-known third-party tracking, analytics, ad and
+session-recording requests so pages load faster. No remote rule lists, no remote code, no
+network calls of its own — everything ships as static JSON in this folder.
+
+## Install (unpacked)
+
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode** (top right).
+3. Click **Load unpacked** and pick this folder.
+4. Pin the toolbar icon if you want the popup one click away.
+
+Loading unpacked also grants `declarativeNetRequestFeedback`, which is what feeds the live
+blocked-request counter (`onRuleMatchedDebug`). Blocking works either way; in a packed/store
+build that permission is unavailable and the counter simply stays at 0.
+
+## Files
+
+| File | Role |
+| --- | --- |
+| `manifest.json` | MV3 manifest, permissions, the four static rulesets |
+| `rules/analytics.json` | Analytics and product-telemetry domains |
+| `rules/ads.json` | Ad networks, retargeting and conversion pixels |
+| `rules/chat-widgets.json` | Support/chat widget bundles |
+| `rules/session-recording.json` | Session replay and heatmap trackers |
+| `background.js` | Service worker: rule syncing, dynamic rules, per-tab counter |
+| `popup.html` / `popup.js` | Global toggle, per-site exception, blocked count |
+| `options.html` / `options.js` | Category toggles, excluded sites, custom blocklist |
+
+## How it blocks
+
+Every static rule has the same shape:
+
+```json
+{
+  "id": 1001,
+  "priority": 1,
+  "action": { "type": "block" },
+  "condition": {
+    "urlFilter": "||google-analytics.com^",
+    "domainType": "thirdParty",
+    "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "sub_frame", "websocket", "other"]
+  }
+}
+```
+
+Two safety properties come from that shape:
+
+- `domainType: "thirdParty"` — a request is only blocked when its domain differs from the page's.
+  First-party assets such as `console.apify.com/assets/*` can never match, so site functionality
+  is left alone.
+- `main_frame` is absent from `resourceTypes` — the extension never blocks a top-level navigation.
+
+Rule ids are allocated per category so a rule is easy to trace back from
+`chrome.declarativeNetRequest.getMatchedRules()`:
+
+| Range | Source |
+| --- | --- |
+| 1000–1999 | `rules/analytics.json` |
+| 2000–2999 | `rules/ads.json` |
+| 3000–3999 | `rules/chat-widgets.json` |
+| 4000–4999 | `rules/session-recording.json` |
+| 800000+ | dynamic per-site allowlist exceptions |
+| 900000+ | dynamic rules from the user's custom blocklist |
+
+## Controls
+
+**Global toggle** (popup) — flips `enabled` in `chrome.storage.sync`. The worker responds by
+disabling every ruleset and dropping the custom block rules, so nothing is filtered at all.
+
+**Per-site exception** (popup, or the options page list) — adds the hostname to
+`excludedDomains`. Each entry becomes one dynamic rule:
+
+```json
+{
+  "id": 800000,
+  "priority": 100,
+  "action": { "type": "allowAllRequests" },
+  "condition": { "requestDomains": ["example.com"], "resourceTypes": ["main_frame", "sub_frame"] }
+}
+```
+
+`allowAllRequests` on the document exempts every sub-request that document makes, and
+`requestDomains` covers subdomains, so one entry disables the extension for the whole site. The
+popup reloads the tab after the change because rules only apply to requests made after they land.
+
+**Category toggles** (options page) — each category is a separate static ruleset, switched with
+`chrome.declarativeNetRequest.updateEnabledRulesets`. No rules are rewritten, so toggling is
+instant.
+
+**Custom blocklist** (options page) — user-supplied domains, stored in
+`chrome.storage.sync.customDomains` and turned into dynamic block rules with the same
+third-party-only condition as the static files.
+
+All four settings live in `chrome.storage.sync` and follow the Chrome profile across installs.
+The service worker watches `chrome.storage.onChanged` and rebuilds engine state from a single
+code path, so the popup and the options page never need to know how rules are built.
+
+## Extending the blocklist
+
+Add an object to the matching file in `rules/`, using the next free id in that category's range,
+and reload the extension on `chrome://extensions`. Keep `domainType: "thirdParty"` and leave
+`main_frame` out. A domain that only ever appears as a tracker on other people's sites belongs
+here; anything that also serves site content belongs in the custom blocklist instead, where the
+user can drop it.
+
+To add a whole new category: create `rules/<name>.json`, register it under
+`declarative_net_request.rule_resources` in `manifest.json`, append the id to `CATEGORIES` in
+`background.js`, and add a label to `CATEGORY_LABELS` in `options.js`.
+
+## Notes and limits
+
+- Chrome caps static rules and dynamic rules per extension. The counts here are small (~85
+  static rules), so there is a lot of headroom, but a very large custom blocklist will eventually
+  hit the dynamic-rule limit.
+- Only network requests are blocked. Inline tracking code served by the page itself is untouched,
+  by design, since cutting first-party scripts is how ad blockers break sites.
+- No icons are bundled, so Chrome shows the default action icon. Drop 16/32/48/128 px PNGs in an
+  `icons/` folder and add an `"icons"` plus `"action.default_icon"` block to the manifest if you
+  want branding.
