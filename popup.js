@@ -27,10 +27,13 @@ function isExcluded(list, hostname) {
     return list.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
 }
 
+// The worker writes every count through to storage.session, which extension
+// pages can read directly.
 async function loadCount() {
     if (!activeTab) return;
-    const response = await chrome.runtime.sendMessage({ type: 'getCount', tabId: activeTab.id });
-    countEl.textContent = response?.count ?? 0;
+    const key = `blocked:${activeTab.id}`;
+    const stored = await chrome.storage.session.get(key);
+    countEl.textContent = stored[key] ?? 0;
 }
 
 async function render() {

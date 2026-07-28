@@ -9,7 +9,6 @@
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
     "storage",
-    "tabs",
     "webNavigation"
   ],
 

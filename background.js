@@ -13,7 +13,6 @@ const CUSTOM_ID_BASE = 900000;
 const ICON_ALLOW_ID_MIN = 5900;
 const ICON_ALLOW_ID_MAX = 5999;
 
-const BLOCK_PRIORITY = 1;
 const ALLOWLIST_PRIORITY = 100; // must beat every block rule, static and custom
 const BADGE_COLOR = '#3b7d4f';
 
@@ -36,14 +35,9 @@ const DEFAULTS = {
     customDomains: [],
 };
 
-async function getSettings() {
-    const stored = await chrome.storage.sync.get(DEFAULTS);
-    return {
-        enabled: stored.enabled !== false,
-        categories: { ...DEFAULTS.categories, ...(stored.categories || {}) },
-        excludedDomains: Array.isArray(stored.excludedDomains) ? stored.excludedDomains : [],
-        customDomains: Array.isArray(stored.customDomains) ? stored.customDomains : [],
-    };
+// get(DEFAULTS) returns the default for every key the profile has never written.
+function getSettings() {
+    return chrome.storage.sync.get(DEFAULTS);
 }
 
 async function syncRulesets() {
@@ -80,7 +74,7 @@ function allowlistRule(host, index) {
 function customBlockRule(host, index) {
     return {
         id: CUSTOM_ID_BASE + index,
-        priority: BLOCK_PRIORITY,
+        priority: 1,
         action: { type: 'block' },
         condition: {
             urlFilter: `||${host}^`,
@@ -90,13 +84,6 @@ function customBlockRule(host, index) {
     };
 }
 
-/** Valid hostnames paired with their position, so rule ids stay stable. */
-function hostsWithIndex(domains) {
-    return domains
-        .map((domain, index) => [normalizeDomain(domain), index])
-        .filter(([host]) => host);
-}
-
 /**
  * Rebuilt wholesale rather than patched: ids stay predictable and storage can
  * never drift from the engine. Allowlist rules are registered even when blocking
@@ -104,16 +91,11 @@ function hostsWithIndex(domains) {
  */
 async function syncDynamicRules() {
     const settings = await getSettings();
-    const rules = hostsWithIndex(settings.excludedDomains).map(([host, index]) =>
-        allowlistRule(host, index),
-    );
+    const hosts = (domains) => domains.map(normalizeDomain).filter(Boolean);
+    const rules = hosts(settings.excludedDomains).map(allowlistRule);
 
     if (settings.enabled) {
-        rules.push(
-            ...hostsWithIndex(settings.customDomains).map(([host, index]) =>
-                customBlockRule(host, index),
-            ),
-        );
+        rules.push(...hosts(settings.customDomains).map(customBlockRule));
     }
 
     const existing = await chrome.declarativeNetRequest.getDynamicRules();
@@ -153,11 +135,6 @@ const restored = chrome.storage.session.get(null).then((stored) => {
 function isAllowRule(ruleId) {
     if (ruleId >= ICON_ALLOW_ID_MIN && ruleId <= ICON_ALLOW_ID_MAX) return true;
     return ruleId >= ALLOWLIST_ID_BASE && ruleId < CUSTOM_ID_BASE;
-}
-
-async function getCount(tabId) {
-    await restored;
-    return counts[tabId] || 0;
 }
 
 chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
@@ -200,26 +177,12 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     chrome.storage.session.remove(COUNT_KEY_PREFIX + tabId);
 });
 
-chrome.runtime.onInstalled.addListener(async () => {
-    // Write the defaults once so the options page has something concrete to show.
-    await chrome.storage.sync.set(await getSettings());
-    await syncAll();
-});
-
 // Single re-derivation path for the popup, the options page and a sync from
 // another install.
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'sync') return;
     const relevant = ['enabled', 'categories', 'excludedDomains', 'customDomains'];
     if (relevant.some((key) => key in changes)) syncAll();
-});
-
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message?.type === 'getCount') {
-        getCount(message.tabId).then((count) => sendResponse({ count }));
-        return true; // keeps the channel open for the async response
-    }
-    return false;
 });
 
 // Re-asserts engine state on every worker start, browser startup included.
