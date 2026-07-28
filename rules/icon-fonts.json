@@ -1,0 +1,12 @@
+[
+  { "id": 6001, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "||fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6002, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "||use.fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6003, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "||kit.fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6004, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "||ka-f.fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6005, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "/icon?", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.googleapis.com"], "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6006, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "family=material", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.googleapis.com"], "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6007, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "/s/materialicons", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.gstatic.com"], "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6008, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "/s/materialsymbols", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.gstatic.com"], "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6009, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "||at.alicdn.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 6010, "priority": 3, "action": { "type": "block" }, "condition": { "urlFilter": "||cdn.materialdesignicons.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } }
+]

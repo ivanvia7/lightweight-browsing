@@ -11,11 +11,20 @@
  */
 
 // Ruleset ids must match "declarative_net_request.rule_resources" in manifest.json.
-const CATEGORIES = ['analytics', 'ads', 'chat-widgets', 'session-recording', 'fonts'];
+const CATEGORIES = [
+    'analytics',
+    'ads',
+    'chat-widgets',
+    'session-recording',
+    'fonts',
+    'icon-fonts',
+];
 
-// Web fonts start off: blocking them also strips icon fonts, so Font Awesome and
-// Material Icons render as empty boxes. Opt-in per user, not a default.
-const DEFAULT_OFF = ['fonts'];
+// Both font categories start off: they change how pages look rather than only
+// what they phone home. "fonts" keeps icon fonts working via allow rules, so
+// enabling "icon-fonts" too is what turns Font Awesome and Material Icons into
+// empty boxes.
+const DEFAULT_OFF = ['fonts', 'icon-fonts'];
 
 // Dynamic rule id ranges. Kept far away from the static ranges (1000-4999) so the
 // two never collide while debugging with getMatchedRules().

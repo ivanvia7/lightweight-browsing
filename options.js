@@ -11,9 +11,17 @@ const CATEGORY_LABELS = {
     'session-recording': ['Session recording', 'Hotjar, Microsoft Clarity, FullStory, LogRocket, Smartlook'],
     fonts: [
         'Web fonts (off by default)',
-        'Google Fonts, Typekit, Font Awesome — pages fall back to system fonts. Icon fonts turn into empty boxes',
+        'Google Fonts, Typekit, Monotype, Bunny — pages fall back to system fonts. Icon fonts keep working',
+    ],
+    'icon-fonts': [
+        'Icon fonts (off by default)',
+        'Font Awesome, Material Icons, Iconfont — icons render as empty boxes or blank space',
     ],
 };
+
+// Mirrors DEFAULT_OFF in background.js: a category with nothing stored yet is on
+// unless it is listed here.
+const DEFAULT_OFF = ['fonts', 'icon-fonts'];
 
 /** Same normalisation as background.js so storage never holds a bad entry. */
 function normalizeDomain(input) {
@@ -115,9 +123,7 @@ function renderCategories(categories) {
         label.className = 'switch';
         const input = document.createElement('input');
         input.type = 'checkbox';
-        // Mirrors DEFAULT_OFF in background.js: a category with nothing stored
-        // yet is on, except web fonts.
-        input.checked = categories[key] ?? key !== 'fonts';
+        input.checked = categories[key] ?? !DEFAULT_OFF.includes(key);
         input.addEventListener('change', async () => {
             const { categories: current = {} } = await chrome.storage.sync.get('categories');
             await chrome.storage.sync.set({

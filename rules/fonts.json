@@ -4,11 +4,13 @@
   { "id": 5003, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||use.typekit.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
   { "id": 5004, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||p.typekit.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
   { "id": 5005, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||use.edgefonts.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
-  { "id": 5006, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||use.fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
-  { "id": 5007, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||kit.fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
   { "id": 5008, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fast.fonts.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
   { "id": 5009, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fonts.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
   { "id": 5010, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||cloud.typography.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
   { "id": 5011, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fonts.bunny.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
-  { "id": 5012, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } }
+
+  { "id": 5901, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/icon?", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.googleapis.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5902, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "family=material", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.googleapis.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5903, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/s/materialicons", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.gstatic.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5904, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/s/materialsymbols", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.gstatic.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } }
 ]

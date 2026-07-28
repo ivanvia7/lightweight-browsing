@@ -24,12 +24,13 @@ attribute them to.
 
 | File | Role |
 | --- | --- |
-| `manifest.json` | MV3 manifest, permissions, the four static rulesets |
+| `manifest.json` | MV3 manifest, permissions, the six static rulesets |
 | `rules/analytics.json` | Analytics and product-telemetry domains |
 | `rules/ads.json` | Ad networks, retargeting and conversion pixels |
 | `rules/chat-widgets.json` | Support/chat widget bundles |
 | `rules/session-recording.json` | Session replay and heatmap trackers |
-| `rules/fonts.json` | Third-party web-font CDNs. **Off by default** |
+| `rules/fonts.json` | Third-party text-font CDNs, plus allow rules that spare icon fonts. **Off by default** |
+| `rules/icon-fonts.json` | Icon-font CDNs (Font Awesome, Material Icons). **Off by default** |
 | `background.js` | Service worker: rule syncing, dynamic rules, per-tab counter |
 | `popup.html` / `popup.js` | Global toggle, per-site exception, blocked count |
 | `options.html` / `options.js` | Category toggles, excluded sites, custom blocklist |
@@ -67,7 +68,9 @@ Rule ids are allocated per category so a rule is easy to trace back from
 | 2000–2999 | `rules/ads.json` |
 | 3000–3999 | `rules/chat-widgets.json` |
 | 4000–4999 | `rules/session-recording.json` |
-| 5000–5999 | `rules/fonts.json` |
+| 5000–5899 | `rules/fonts.json` block rules |
+| 5900–5999 | `rules/fonts.json` icon-font allow rules |
+| 6000–6999 | `rules/icon-fonts.json` |
 | 800000+ | dynamic per-site allowlist exceptions |
 | 900000+ | dynamic rules from the user's custom blocklist |
 
@@ -94,10 +97,27 @@ popup reloads the tab after the change because rules only apply to requests made
 
 **Category toggles** (options page) — each category is a separate static ruleset, switched with
 `chrome.declarativeNetRequest.updateEnabledRulesets`. No rules are rewritten, so toggling is
-instant. The `fonts` category ships disabled (`DEFAULT_OFF` in `background.js`): dropping
-third-party fonts is the largest remaining load win, but it also strips icon fonts, so Font
-Awesome and Material Icons render as empty boxes. First-party CSS is never blocked — it *is* the
-page layout, and no rule here matches `stylesheet` from the page's own domain.
+instant. First-party CSS is never blocked — it *is* the page layout, and no rule here matches
+`stylesheet` from the page's own domain.
+
+Both font categories ship disabled (`DEFAULT_OFF` in `background.js`) because they change how a
+page looks rather than only what it phones home:
+
+- **Web fonts** — text-font CDNs (Google Fonts, Typekit, Monotype, Bunny). Pages fall back to
+  system fonts. Icons keep working.
+- **Icon fonts** — Font Awesome, Material Icons, Iconfont. Icons become empty boxes or blank space.
+
+Material Icons are served from the same hosts as Google's text fonts, and a `urlFilter` cannot
+negate a substring, so the split needs a priority ladder inside `rules/fonts.json`:
+
+| Priority | Rule | Effect |
+| --- | --- | --- |
+| 1 | block `\|\|fonts.googleapis.com^`, `\|\|fonts.gstatic.com^` | kills all Google font traffic |
+| 2 | allow `/icon?`, `family=material`, `/s/materialicons`, `/s/materialsymbols` | carves the icon URLs back out |
+| 3 | block the same icon URLs, in `rules/icon-fonts.json` | overrides the allow when that category is on |
+
+So `fonts` alone strips text fonts and keeps icons; enabling `icon-fonts` as well strips both. The
+per-site exception sits at priority 100 and still beats every rule above.
 
 **Custom blocklist** (options page) — user-supplied domains, stored in
 `chrome.storage.sync.customDomains` and turned into dynamic block rules with the same
