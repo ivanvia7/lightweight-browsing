@@ -1,10 +1,7 @@
-/**
- * Constants and helpers used by both the service worker and the options page.
- * Imported as an ES module, so background.js is declared with "type": "module"
- * and options.html loads options.js with type="module".
- */
+// Shared by the service worker and the options page. Both load as ES modules:
+// background.js via "type": "module", options.js via <script type="module">.
 
-// Ruleset ids must match "declarative_net_request.rule_resources" in manifest.json.
+// Must match "declarative_net_request.rule_resources" in manifest.json.
 export const CATEGORIES = [
     'analytics',
     'ads',
@@ -15,10 +12,7 @@ export const CATEGORIES = [
     'small-images',
 ];
 
-// These categories start off: they change how pages look rather than only what
-// they phone home. "fonts" keeps icon fonts working via allow rules, so enabling
-// "icon-fonts" too is what turns Font Awesome and Material Icons into empty
-// boxes. "small-images" guesses from the URL and will occasionally guess wrong.
+// Off by default: these change how a page looks, not only what it phones home.
 export const DEFAULT_OFF = ['fonts', 'icon-fonts', 'small-images'];
 
 /** Turn "https://www.Example.com/x" or " Example.com " into "example.com". */

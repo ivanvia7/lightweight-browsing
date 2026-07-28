@@ -1,8 +1,5 @@
-/**
- * Options page: global switch, per-category switches, excluded-site list and
- * custom blocklist. Writes to chrome.storage.sync only — the service worker
- * turns the settings into declarativeNetRequest rules.
- */
+// Options page: global switch, category switches, excluded sites, custom
+// blocklist. Writes to chrome.storage.sync only; the worker turns them into rules.
 
 import { DEFAULT_OFF, normalizeDomain } from './shared.js';
 
@@ -164,7 +161,7 @@ async function load() {
     custom.set(stored.customDomains || []);
 }
 
-// Keep the page truthful when the popup (or another device) changes something.
+// Keeps the page truthful when the popup or another device changes something.
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'sync') return;
     if ('enabled' in changes) enabledToggle.checked = changes.enabled.newValue !== false;

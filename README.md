@@ -34,6 +34,7 @@ attribute them to.
 | `rules/icon-fonts.json` | Icon-font CDNs (Font Awesome, Material Icons). **Off by default** |
 | `rules/small-images.json` | Third-party avatars and favicons, matched on the size in the URL. **Off by default** |
 | `background.js` | Service worker: rule syncing, dynamic rules, per-tab counter |
+| `ui.css` | Theme variables and the switch component, shared by both pages |
 | `popup.html` / `popup.js` | Global toggle, per-site exception, blocked count |
 | `options.html` / `options.js` | Category toggles, excluded sites, custom blocklist |
 

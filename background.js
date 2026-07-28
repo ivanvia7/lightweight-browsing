@@ -1,29 +1,24 @@
-/**
- * Lightweight Browsing — service worker.
- *
- * Owns everything that mutates the blocking engine:
- *   - static rulesets (one per tracker category) enabled/disabled via updateEnabledRulesets
- *   - dynamic rules: per-site allowlist exceptions + the user's custom blocklist
- *   - per-tab blocked-request counter + toolbar badge
- *
- * Settings live in chrome.storage.sync so they follow the user across installs.
- * Counters live in chrome.storage.session (throwaway, per browser session).
- */
+// Service worker. Sole owner of every declarativeNetRequest mutation and of the
+// per-tab blocked-request counter.
 
 import { CATEGORIES, DEFAULT_OFF, normalizeDomain } from './shared.js';
 
-// Dynamic rule id ranges. Kept far away from the static ranges (1000-4999) so the
-// two never collide while debugging with getMatchedRules().
-const ALLOWLIST_ID_BASE = 800000; // one "allowAllRequests" rule per excluded domain
-const CUSTOM_ID_BASE = 900000; // one "block" rule per custom blocklist domain
+// Dynamic ids sit far above the static ranges (1000-7999) so a matched rule is
+// always traceable to its source.
+const ALLOWLIST_ID_BASE = 800000;
+const CUSTOM_ID_BASE = 900000;
 
-// Static "allow" rules in rules/fonts.json that exempt icon-font URLs from the
-// text-font blocks. They match without blocking anything, so they never count.
+// The icon-font exemptions in rules/fonts.json. They are allow rules, and an
+// allow means nothing was blocked, so the counter has to skip them.
 const ICON_ALLOW_ID_MIN = 5900;
 const ICON_ALLOW_ID_MAX = 5999;
 
-// Resource types we ever block. main_frame is deliberately absent: blocking a
-// top-level navigation would break the page instead of speeding it up.
+const BLOCK_PRIORITY = 1;
+const ALLOWLIST_PRIORITY = 100; // must beat every block rule, static and custom
+const BADGE_COLOR = '#3b7d4f';
+
+// main_frame is deliberately absent: blocking a top-level navigation breaks the
+// page rather than speeding it up.
 const BLOCKED_RESOURCE_TYPES = [
     'script',
     'xmlhttprequest',
@@ -37,11 +32,10 @@ const BLOCKED_RESOURCE_TYPES = [
 const DEFAULTS = {
     enabled: true,
     categories: Object.fromEntries(CATEGORIES.map((c) => [c, !DEFAULT_OFF.includes(c)])),
-    excludedDomains: [], // sites where the extension does nothing
-    customDomains: [], // extra third-party domains the user wants blocked
+    excludedDomains: [],
+    customDomains: [],
 };
 
-/** Read settings, filling in defaults for anything never written yet. */
 async function getSettings() {
     const stored = await chrome.storage.sync.get(DEFAULTS);
     return {
@@ -52,15 +46,14 @@ async function getSettings() {
     };
 }
 
-/** Enable exactly the rulesets the current settings ask for. */
 async function syncRulesets() {
     const settings = await getSettings();
     const wanted = settings.enabled
         ? CATEGORIES.filter((category) => settings.categories[category])
         : [];
 
-    // Enabling an already-enabled ruleset (or disabling a disabled one) is a
-    // no-op, so the current state does not need reading first.
+    // Enabling an already-enabled ruleset is a no-op, so the current state does
+    // not need reading first.
     await chrome.declarativeNetRequest.updateEnabledRulesets({
         enableRulesetIds: wanted,
         disableRulesetIds: CATEGORIES.filter((category) => !wanted.includes(category)),
@@ -68,49 +61,59 @@ async function syncRulesets() {
 }
 
 /**
- * Rebuild the dynamic rule set from scratch: allowlist exceptions first, then
- * the user's custom blocklist. Rebuilding wholesale keeps ids predictable and
- * avoids drift between storage and the engine.
+ * "allowAllRequests" on the document exempts every sub-request that document
+ * makes, which is what "disable on this site" has to mean. requestDomains
+ * matches the document URL and covers subdomains.
+ */
+function allowlistRule(host, index) {
+    return {
+        id: ALLOWLIST_ID_BASE + index,
+        priority: ALLOWLIST_PRIORITY,
+        action: { type: 'allowAllRequests' },
+        condition: {
+            requestDomains: [host],
+            resourceTypes: ['main_frame', 'sub_frame'],
+        },
+    };
+}
+
+function customBlockRule(host, index) {
+    return {
+        id: CUSTOM_ID_BASE + index,
+        priority: BLOCK_PRIORITY,
+        action: { type: 'block' },
+        condition: {
+            urlFilter: `||${host}^`,
+            domainType: 'thirdParty',
+            resourceTypes: BLOCKED_RESOURCE_TYPES,
+        },
+    };
+}
+
+/** Valid hostnames paired with their position, so rule ids stay stable. */
+function hostsWithIndex(domains) {
+    return domains
+        .map((domain, index) => [normalizeDomain(domain), index])
+        .filter(([host]) => host);
+}
+
+/**
+ * Rebuilt wholesale rather than patched: ids stay predictable and storage can
+ * never drift from the engine. Allowlist rules are registered even when blocking
+ * is globally off, which is harmless because no block rules are active then.
  */
 async function syncDynamicRules() {
     const settings = await getSettings();
-    const rules = [];
+    const rules = hostsWithIndex(settings.excludedDomains).map(([host, index]) =>
+        allowlistRule(host, index),
+    );
 
-    // Per-site exceptions. "allowAllRequests" on the document request means every
-    // sub-request made by that page is exempt, which is what "disable on this
-    // site" has to mean. Registered even when the extension is globally off so
-    // the state is consistent; harmless because no block rules are active then.
-    settings.excludedDomains.forEach((domain, index) => {
-        const host = normalizeDomain(domain);
-        if (!host) return;
-        rules.push({
-            id: ALLOWLIST_ID_BASE + index,
-            priority: 100, // must beat every block rule, static and custom alike
-            action: { type: 'allowAllRequests' },
-            condition: {
-                // requestDomains matches the document URL itself, and covers subdomains.
-                requestDomains: [host],
-                resourceTypes: ['main_frame', 'sub_frame'],
-            },
-        });
-    });
-
-    // Custom blocklist. Same third-party-only safety rule as the static files.
     if (settings.enabled) {
-        settings.customDomains.forEach((domain, index) => {
-            const host = normalizeDomain(domain);
-            if (!host) return;
-            rules.push({
-                id: CUSTOM_ID_BASE + index,
-                priority: 1, // same priority as the static block rules
-                action: { type: 'block' },
-                condition: {
-                    urlFilter: `||${host}^`,
-                    domainType: 'thirdParty',
-                    resourceTypes: BLOCKED_RESOURCE_TYPES,
-                },
-            });
-        });
+        rules.push(
+            ...hostsWithIndex(settings.customDomains).map(([host, index]) =>
+                customBlockRule(host, index),
+            ),
+        );
     }
 
     const existing = await chrome.declarativeNetRequest.getDynamicRules();
@@ -120,8 +123,8 @@ async function syncDynamicRules() {
     });
 }
 
-// One sync at a time. Two overlapping runs both read getDynamicRules() and then
-// try to remove the same ids, and the loser rejects.
+// One sync at a time. Two overlapping runs read getDynamicRules() and then try
+// to remove the same ids, and the loser rejects.
 let syncing = Promise.resolve();
 
 function syncAll() {
@@ -132,30 +135,21 @@ function syncAll() {
     return syncing;
 }
 
-/* ------------------------------------------------------------------ counters */
-
 const COUNT_KEY_PREFIX = 'blocked:';
 
-// tabId -> blocked requests since that tab's last committed navigation. Counting
-// happens here, in memory, because a read-modify-write through storage loses
-// updates: a page that fires twenty blocked requests in one tick would have all
-// twenty handlers read the same stored value and land on a count of one.
+// tabId -> blocked requests since that tab's last committed navigation. Held in
+// memory because a read-modify-write through storage loses updates: twenty
+// blocked requests in one tick would all read the same value and land on 1.
 const counts = {};
 
-// storage.session only survives the worker being idled out, so the map is
-// seeded from it once and written through afterwards. Every counter path awaits
-// this first, which also serialises the increments.
+// storage.session survives the worker being idled out, so the map is seeded from
+// it once and written through afterwards. Every counter path awaits this.
 const restored = chrome.storage.session.get(null).then((stored) => {
     Object.entries(stored).forEach(([key, value]) => {
         if (key.startsWith(COUNT_KEY_PREFIX)) counts[key.slice(COUNT_KEY_PREFIX.length)] = value;
     });
 });
 
-/**
- * onRuleMatchedDebug fires for allow rules too, and an allow means nothing was
- * blocked. Two ranges hold them: the icon-font exemptions inside fonts.json, and
- * the per-site "allowAllRequests" exceptions.
- */
 function isAllowRule(ruleId) {
     if (ruleId >= ICON_ALLOW_ID_MIN && ruleId <= ICON_ALLOW_ID_MAX) return true;
     return ruleId >= ALLOWLIST_ID_BASE && ruleId < CUSTOM_ID_BASE;
@@ -166,42 +160,35 @@ async function getCount(tabId) {
     return counts[tabId] || 0;
 }
 
-// The colour never changes, so it is set once per worker rather than per count.
-chrome.action.setBadgeBackgroundColor({ color: '#3b7d4f' });
+chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
 
 /**
- * Deliberately synchronous: the map assignment must happen in the same tick as
- * the caller's read, or two handlers can interleave and one increment is lost.
- * The storage and badge writes are fire-and-forget.
+ * Synchronous on purpose: the assignment has to land in the same tick as the
+ * caller's read, or two handlers interleave and one increment is lost. The
+ * storage and badge writes are fire-and-forget; the badge rejects on a tab that
+ * closed in between, which needs no handling.
  */
 function setCount(tabId, count) {
     counts[tabId] = count;
     chrome.storage.session.set({ [COUNT_KEY_PREFIX + tabId]: count });
-    chrome.action.setBadgeText({ tabId, text: count ? String(count) : '' }).catch(() => {
-        // Tab closed between the count and the badge write. Nothing to do.
-    });
+    chrome.action.setBadgeText({ tabId, text: count ? String(count) : '' }).catch(() => {});
 }
 
-/**
- * onRuleMatchedDebug only exists for unpacked extensions with the
- * "declarativeNetRequestFeedback" permission, which is exactly how this
- * extension is meant to be loaded. Without it the counter stays at 0; blocking
- * itself is unaffected.
- */
+// onRuleMatchedDebug needs "declarativeNetRequestFeedback", which only unpacked
+// extensions get. Packed, the counter stays at 0 and blocking is unaffected.
 if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
     chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async (info) => {
         const tabId = info.request.tabId;
-        if (tabId < 0) return; // not attached to a tab (e.g. a worker request)
+        if (tabId < 0) return; // no owning tab, e.g. a service-worker request
         if (isAllowRule(info.rule.ruleId)) return;
         await restored;
-        setCount(tabId, (counts[tabId] || 0) + 1); // read and write in one tick
+        setCount(tabId, (counts[tabId] || 0) + 1);
     });
 }
 
-// Reset on a committed top-level navigation only. tabs.onUpdated with
-// status === 'loading' fires several times per navigation, and a late one wipes
-// trackers that were already blocked earlier in the same page load. Awaiting the
-// restore first, or a late-resolving restore would put the old count back.
+// Committed navigations only. tabs.onUpdated with status 'loading' fires several
+// times per navigation and a late one wipes trackers already blocked in the same
+// load. The restore is awaited first, or it would put the old count back.
 chrome.webNavigation.onCommitted.addListener(async ({ tabId, frameId }) => {
     if (frameId !== 0) return;
     await restored;
@@ -213,17 +200,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     chrome.storage.session.remove(COUNT_KEY_PREFIX + tabId);
 });
 
-/* ------------------------------------------------------------------ plumbing */
-
 chrome.runtime.onInstalled.addListener(async () => {
     // Write the defaults once so the options page has something concrete to show.
-    const settings = await getSettings();
-    await chrome.storage.sync.set(settings);
+    await chrome.storage.sync.set(await getSettings());
     await syncAll();
 });
 
-// Any settings change (popup, options page, or a sync from another install)
-// re-derives the engine state. Single code path, no duplicated rule building.
+// Single re-derivation path for the popup, the options page and a sync from
+// another install.
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'sync') return;
     const relevant = ['enabled', 'categories', 'excludedDomains', 'customDomains'];
@@ -233,11 +217,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'getCount') {
         getCount(message.tabId).then((count) => sendResponse({ count }));
-        return true; // async response
+        return true; // keeps the channel open for the async response
     }
     return false;
 });
 
-// Runs on every worker start, browser startup included, so the engine state is
-// re-asserted after the worker has been idled out.
+// Re-asserts engine state on every worker start, browser startup included.
 syncAll();

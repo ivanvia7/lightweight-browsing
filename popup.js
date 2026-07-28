@@ -1,8 +1,5 @@
-/**
- * Popup: global on/off, per-site exception for the active tab, blocked count.
- * All state changes go through chrome.storage.sync; the service worker watches
- * storage and rebuilds the rules, so nothing here touches the blocking engine.
- */
+// Popup: global on/off, per-site exception for the active tab, blocked count.
+// Writes to chrome.storage.sync only; the worker rebuilds the rules from there.
 
 const globalToggle = document.getElementById('globalToggle');
 const globalState = document.getElementById('globalState');
@@ -25,16 +22,11 @@ function hostOf(url) {
     }
 }
 
-/** True when `hostname` is covered by an entry in the excluded list (incl. subdomains). */
+/** True when `hostname` is covered by an entry in the excluded list, subdomains included. */
 function isExcluded(list, hostname) {
     return list.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
 }
 
-/**
- * The count comes from the service worker, which tallies onRuleMatchedDebug and
- * resets on every page load. That event needs the "declarativeNetRequestFeedback"
- * permission, granted for unpacked loading; without it the count stays 0.
- */
 async function loadCount() {
     if (!activeTab) return;
     const response = await chrome.runtime.sendMessage({ type: 'getCount', tabId: activeTab.id });
@@ -81,8 +73,7 @@ siteToggle.addEventListener('change', async () => {
           );
     await chrome.storage.sync.set({ excludedDomains: next });
     await render();
-    // The exception only takes effect for requests made after the rule lands,
-    // so reload the page to make the change visible immediately.
+    // Rules only apply to requests made after they land, so reload to show it.
     if (activeTab) chrome.tabs.reload(activeTab.id);
 });
 
