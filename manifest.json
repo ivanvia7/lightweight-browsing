@@ -33,7 +33,8 @@
       { "id": "chat-widgets", "enabled": true, "path": "rules/chat-widgets.json" },
       { "id": "session-recording", "enabled": true, "path": "rules/session-recording.json" },
       { "id": "fonts", "enabled": false, "path": "rules/fonts.json" },
-      { "id": "icon-fonts", "enabled": false, "path": "rules/icon-fonts.json" }
+      { "id": "icon-fonts", "enabled": false, "path": "rules/icon-fonts.json" },
+      { "id": "small-images", "enabled": false, "path": "rules/small-images.json" }
     ]
   }
 }

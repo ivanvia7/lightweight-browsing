@@ -31,6 +31,7 @@ attribute them to.
 | `rules/session-recording.json` | Session replay and heatmap trackers |
 | `rules/fonts.json` | Third-party text-font CDNs, plus allow rules that spare icon fonts. **Off by default** |
 | `rules/icon-fonts.json` | Icon-font CDNs (Font Awesome, Material Icons). **Off by default** |
+| `rules/small-images.json` | Third-party avatars and favicons, matched on the size in the URL. **Off by default** |
 | `background.js` | Service worker: rule syncing, dynamic rules, per-tab counter |
 | `popup.html` / `popup.js` | Global toggle, per-site exception, blocked count |
 | `options.html` / `options.js` | Category toggles, excluded sites, custom blocklist |
@@ -71,6 +72,7 @@ Rule ids are allocated per category so a rule is easy to trace back from
 | 5000–5899 | `rules/fonts.json` block rules |
 | 5900–5999 | `rules/fonts.json` icon-font allow rules |
 | 6000–6999 | `rules/icon-fonts.json` |
+| 7000–7999 | `rules/small-images.json` |
 | 800000+ | dynamic per-site allowlist exceptions |
 | 900000+ | dynamic rules from the user's custom blocklist |
 
@@ -118,6 +120,35 @@ negate a substring, so the split needs a priority ladder inside `rules/fonts.jso
 
 So `fonts` alone strips text fonts and keeps icons; enabling `icon-fonts` as well strips both. The
 per-site exception sits at priority 100 and still beats every rule above.
+
+### Small images
+
+`rules/small-images.json` targets the other kind of icon: 16–96 px avatars and favicons served as
+real image files. A rule can only see the URL, never the `<img width="24">` attribute, so this
+category matches the resizing conventions image CDNs put in the path or query string:
+
+| Convention | Example URL fragment | Used by |
+| --- | --- | --- |
+| imgproxy / Thumbor | `/rs:fill:48:48/` | Apify, Evil Martians stack |
+| Cloudinary transforms | `/w_48,h_48/` | Cloudinary |
+| width query param | `?w=48`, `?width=32` | imgix, Next.js, WordPress.com |
+| size query param | `?s=64`, `?size=24` | Gravatar, GitHub |
+| dimension suffix | `_48x48.png`, `-24x24.webp` | Shopify, WordPress |
+| dimension directory | `/32x32/` | many self-hosted resizers |
+
+Plus a few hosts that only ever serve avatars or favicons: `gravatar.com`,
+`avatars.githubusercontent.com`, `ui-avatars.com`, `icons.duckduckgo.com`,
+`google.com/s2/favicons`.
+
+Two caveats, which is why it ships disabled:
+
+- **It guesses.** A genuine 80 px content image behind `?w=80` is blocked too. Nothing in the URL
+  distinguishes a decorative avatar from a small photo that matters.
+- **The saving is request count, not bandwidth.** A 48×48 JPEG is around 2 KB, so a page with
+  thirty avatars saves ~60 KB but drops thirty connections and thirty decodes.
+
+`domainType: "thirdParty"` still applies, so a site's own image server is never touched — only
+external CDNs. Per-site exceptions work here exactly as for every other category.
 
 **Custom blocklist** (options page) — user-supplied domains, stored in
 `chrome.storage.sync.customDomains` and turned into dynamic block rules with the same

@@ -17,11 +17,15 @@ const CATEGORY_LABELS = {
         'Icon fonts (off by default)',
         'Font Awesome, Material Icons, Iconfont — icons render as empty boxes or blank space',
     ],
+    'small-images': [
+        'Small images (off by default)',
+        'Third-party avatars and favicons under 100 px, matched by the size in the URL. Saves requests, not much bandwidth, and can misfire on small content images',
+    ],
 };
 
 // Mirrors DEFAULT_OFF in background.js: a category with nothing stored yet is on
 // unless it is listed here.
-const DEFAULT_OFF = ['fonts', 'icon-fonts'];
+const DEFAULT_OFF = ['fonts', 'icon-fonts', 'small-images'];
 
 /** Same normalisation as background.js so storage never holds a bad entry. */
 function normalizeDomain(input) {

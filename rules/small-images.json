@@ -1,0 +1,13 @@
+[
+  { "id": 7001, "priority": 1, "action": { "type": "block" }, "condition": { "regexFilter": "rs:(fill|fit|auto):[1-9][0-9]?:", "isUrlFilterCaseSensitive": false, "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7002, "priority": 1, "action": { "type": "block" }, "condition": { "regexFilter": "/w_[1-9][0-9]?[,/]", "isUrlFilterCaseSensitive": false, "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7003, "priority": 1, "action": { "type": "block" }, "condition": { "regexFilter": "[?&](w|width)=[1-9][0-9]?(&|$)", "isUrlFilterCaseSensitive": false, "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7004, "priority": 1, "action": { "type": "block" }, "condition": { "regexFilter": "[?&](s|size|sz)=[1-9][0-9]?(&|$)", "isUrlFilterCaseSensitive": false, "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7005, "priority": 1, "action": { "type": "block" }, "condition": { "regexFilter": "[_-][1-9][0-9]?x[1-9][0-9]?\\.(jpe?g|png|webp|gif|avif)", "isUrlFilterCaseSensitive": false, "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7006, "priority": 1, "action": { "type": "block" }, "condition": { "regexFilter": "/[1-9][0-9]?x[1-9][0-9]?/", "isUrlFilterCaseSensitive": false, "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7007, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||gravatar.com^", "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7008, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||avatars.githubusercontent.com^", "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7009, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||ui-avatars.com^", "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7010, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||icons.duckduckgo.com^", "domainType": "thirdParty", "resourceTypes": ["image"] } },
+  { "id": 7011, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||www.google.com/s2/favicons", "domainType": "thirdParty", "resourceTypes": ["image"] } }
+]

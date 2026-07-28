@@ -18,13 +18,14 @@ const CATEGORIES = [
     'session-recording',
     'fonts',
     'icon-fonts',
+    'small-images',
 ];
 
-// Both font categories start off: they change how pages look rather than only
-// what they phone home. "fonts" keeps icon fonts working via allow rules, so
-// enabling "icon-fonts" too is what turns Font Awesome and Material Icons into
-// empty boxes.
-const DEFAULT_OFF = ['fonts', 'icon-fonts'];
+// These categories start off: they change how pages look rather than only what
+// they phone home. "fonts" keeps icon fonts working via allow rules, so enabling
+// "icon-fonts" too is what turns Font Awesome and Material Icons into empty
+// boxes. "small-images" guesses from the URL and will occasionally guess wrong.
+const DEFAULT_OFF = ['fonts', 'icon-fonts', 'small-images'];
 
 // Dynamic rule id ranges. Kept far away from the static ranges (1000-4999) so the
 // two never collide while debugging with getMatchedRules().
