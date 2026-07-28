@@ -9,6 +9,10 @@ const CATEGORY_LABELS = {
     ads: ['Ads', 'DoubleClick, Google Ads, Meta Pixel, LinkedIn, TikTok, Bing UET, Criteo, Taboola'],
     'chat-widgets': ['Chat widgets', 'Intercom, Drift, Zendesk, Tawk.to, LiveChat, Crisp'],
     'session-recording': ['Session recording', 'Hotjar, Microsoft Clarity, FullStory, LogRocket, Smartlook'],
+    fonts: [
+        'Web fonts (off by default)',
+        'Google Fonts, Typekit, Font Awesome — pages fall back to system fonts. Icon fonts turn into empty boxes',
+    ],
 };
 
 /** Same normalisation as background.js so storage never holds a bad entry. */
@@ -111,7 +115,9 @@ function renderCategories(categories) {
         label.className = 'switch';
         const input = document.createElement('input');
         input.type = 'checkbox';
-        input.checked = categories[key] !== false;
+        // Mirrors DEFAULT_OFF in background.js: a category with nothing stored
+        // yet is on, except web fonts.
+        input.checked = categories[key] ?? key !== 'fonts';
         input.addEventListener('change', async () => {
             const { categories: current = {} } = await chrome.storage.sync.get('categories');
             await chrome.storage.sync.set({

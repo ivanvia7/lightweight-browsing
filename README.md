@@ -15,6 +15,11 @@ Loading unpacked also grants `declarativeNetRequestFeedback`, which is what feed
 blocked-request counter (`onRuleMatchedDebug`). Blocking works either way; in a packed/store
 build that permission is unavailable and the counter simply stays at 0.
 
+The count is per tab and resets on each committed top-level navigation
+(`webNavigation.onCommitted`, `frameId === 0`). Requests with no owning tab — service worker,
+prerender and preload traffic — are blocked but not counted, because there is no tab to
+attribute them to.
+
 ## Files
 
 | File | Role |
@@ -24,6 +29,7 @@ build that permission is unavailable and the counter simply stays at 0.
 | `rules/ads.json` | Ad networks, retargeting and conversion pixels |
 | `rules/chat-widgets.json` | Support/chat widget bundles |
 | `rules/session-recording.json` | Session replay and heatmap trackers |
+| `rules/fonts.json` | Third-party web-font CDNs. **Off by default** |
 | `background.js` | Service worker: rule syncing, dynamic rules, per-tab counter |
 | `popup.html` / `popup.js` | Global toggle, per-site exception, blocked count |
 | `options.html` / `options.js` | Category toggles, excluded sites, custom blocklist |
@@ -61,6 +67,7 @@ Rule ids are allocated per category so a rule is easy to trace back from
 | 2000–2999 | `rules/ads.json` |
 | 3000–3999 | `rules/chat-widgets.json` |
 | 4000–4999 | `rules/session-recording.json` |
+| 5000–5999 | `rules/fonts.json` |
 | 800000+ | dynamic per-site allowlist exceptions |
 | 900000+ | dynamic rules from the user's custom blocklist |
 
@@ -87,7 +94,10 @@ popup reloads the tab after the change because rules only apply to requests made
 
 **Category toggles** (options page) — each category is a separate static ruleset, switched with
 `chrome.declarativeNetRequest.updateEnabledRulesets`. No rules are rewritten, so toggling is
-instant.
+instant. The `fonts` category ships disabled (`DEFAULT_OFF` in `background.js`): dropping
+third-party fonts is the largest remaining load win, but it also strips icon fonts, so Font
+Awesome and Material Icons render as empty boxes. First-party CSS is never blocked — it *is* the
+page layout, and no rule here matches `stylesheet` from the page's own domain.
 
 **Custom blocklist** (options page) — user-supplied domains, stored in
 `chrome.storage.sync.customDomains` and turned into dynamic block rules with the same

@@ -1,0 +1,14 @@
+[
+  { "id": 5001, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fonts.googleapis.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5002, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fonts.gstatic.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5003, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||use.typekit.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5004, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||p.typekit.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5005, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||use.edgefonts.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5006, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||use.fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5007, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||kit.fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5008, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fast.fonts.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5009, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fonts.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5010, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||cloud.typography.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5011, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fonts.bunny.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5012, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fontawesome.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } }
+]

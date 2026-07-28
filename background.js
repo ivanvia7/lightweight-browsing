@@ -11,7 +11,11 @@
  */
 
 // Ruleset ids must match "declarative_net_request.rule_resources" in manifest.json.
-const CATEGORIES = ['analytics', 'ads', 'chat-widgets', 'session-recording'];
+const CATEGORIES = ['analytics', 'ads', 'chat-widgets', 'session-recording', 'fonts'];
+
+// Web fonts start off: blocking them also strips icon fonts, so Font Awesome and
+// Material Icons render as empty boxes. Opt-in per user, not a default.
+const DEFAULT_OFF = ['fonts'];
 
 // Dynamic rule id ranges. Kept far away from the static ranges (1000-4999) so the
 // two never collide while debugging with getMatchedRules().
@@ -32,7 +36,7 @@ const BLOCKED_RESOURCE_TYPES = [
 
 const DEFAULTS = {
     enabled: true,
-    categories: Object.fromEntries(CATEGORIES.map((c) => [c, true])),
+    categories: Object.fromEntries(CATEGORIES.map((c) => [c, !DEFAULT_OFF.includes(c)])),
     excludedDomains: [], // sites where the extension does nothing
     customDomains: [], // extra third-party domains the user wants blocked
 };
@@ -146,20 +150,38 @@ function syncAll() {
 
 const COUNT_KEY_PREFIX = 'blocked:';
 
+// tabId -> blocked requests since that tab's last committed navigation. Counting
+// happens here, in memory, because a read-modify-write through storage loses
+// updates: a page that fires twenty blocked requests in one tick would have all
+// twenty handlers read the same stored value and land on a count of one.
+const counts = {};
+
+// storage.session only survives the worker being idled out, so the map is
+// seeded from it once and written through afterwards. Every counter path awaits
+// this first, which also serialises the increments.
+const restored = chrome.storage.session.get(null).then((stored) => {
+    Object.entries(stored).forEach(([key, value]) => {
+        if (key.startsWith(COUNT_KEY_PREFIX)) counts[key.slice(COUNT_KEY_PREFIX.length)] = value;
+    });
+});
+
 async function getCount(tabId) {
-    const key = COUNT_KEY_PREFIX + tabId;
-    const stored = await chrome.storage.session.get(key);
-    return stored[key] || 0;
+    await restored;
+    return counts[tabId] || 0;
 }
 
-async function setCount(tabId, count) {
-    await chrome.storage.session.set({ [COUNT_KEY_PREFIX + tabId]: count });
-    try {
-        await chrome.action.setBadgeText({ tabId, text: count ? String(count) : '' });
-        await chrome.action.setBadgeBackgroundColor({ tabId, color: '#3b7d4f' });
-    } catch {
+/**
+ * Deliberately synchronous: the map assignment must happen in the same tick as
+ * the caller's read, or two handlers can interleave and one increment is lost.
+ * The storage and badge writes are fire-and-forget.
+ */
+function setCount(tabId, count) {
+    counts[tabId] = count;
+    chrome.storage.session.set({ [COUNT_KEY_PREFIX + tabId]: count });
+    chrome.action.setBadgeText({ tabId, text: count ? String(count) : '' }).catch(() => {
         // Tab closed between the count and the badge write. Nothing to do.
-    }
+    });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#3b7d4f' }).catch(() => {});
 }
 
 /**
@@ -173,16 +195,20 @@ if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
         const tabId = info.request.tabId;
         if (tabId < 0) return; // not attached to a tab (e.g. a worker request)
         if (info.rule.ruleId >= ALLOWLIST_ID_BASE && info.rule.ruleId < CUSTOM_ID_BASE) return;
-        await setCount(tabId, (await getCount(tabId)) + 1);
+        await restored;
+        setCount(tabId, (counts[tabId] || 0) + 1); // read and write in one tick
     });
 }
 
-// Reset the counter whenever a tab starts loading a new document.
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (changeInfo.url || changeInfo.status === 'loading') setCount(tabId, 0);
+// Reset on a committed top-level navigation only. tabs.onUpdated with
+// status === 'loading' fires several times per navigation, and a late one wipes
+// trackers that were already blocked earlier in the same page load.
+chrome.webNavigation.onCommitted.addListener(({ tabId, frameId }) => {
+    if (frameId === 0) setCount(tabId, 0);
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+    delete counts[tabId];
     chrome.storage.session.remove(COUNT_KEY_PREFIX + tabId);
 });
 

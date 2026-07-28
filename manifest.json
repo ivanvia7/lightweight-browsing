@@ -9,7 +9,8 @@
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
     "storage",
-    "tabs"
+    "tabs",
+    "webNavigation"
   ],
 
   "host_permissions": ["<all_urls>"],
@@ -30,7 +31,8 @@
       { "id": "analytics", "enabled": true, "path": "rules/analytics.json" },
       { "id": "ads", "enabled": true, "path": "rules/ads.json" },
       { "id": "chat-widgets", "enabled": true, "path": "rules/chat-widgets.json" },
-      { "id": "session-recording", "enabled": true, "path": "rules/session-recording.json" }
+      { "id": "session-recording", "enabled": true, "path": "rules/session-recording.json" },
+      { "id": "fonts", "enabled": false, "path": "rules/fonts.json" }
     ]
   }
 }
