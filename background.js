@@ -10,27 +10,17 @@
  * Counters live in chrome.storage.session (throwaway, per browser session).
  */
 
-// Ruleset ids must match "declarative_net_request.rule_resources" in manifest.json.
-const CATEGORIES = [
-    'analytics',
-    'ads',
-    'chat-widgets',
-    'session-recording',
-    'fonts',
-    'icon-fonts',
-    'small-images',
-];
-
-// These categories start off: they change how pages look rather than only what
-// they phone home. "fonts" keeps icon fonts working via allow rules, so enabling
-// "icon-fonts" too is what turns Font Awesome and Material Icons into empty
-// boxes. "small-images" guesses from the URL and will occasionally guess wrong.
-const DEFAULT_OFF = ['fonts', 'icon-fonts', 'small-images'];
+import { CATEGORIES, DEFAULT_OFF, normalizeDomain } from './shared.js';
 
 // Dynamic rule id ranges. Kept far away from the static ranges (1000-4999) so the
 // two never collide while debugging with getMatchedRules().
 const ALLOWLIST_ID_BASE = 800000; // one "allowAllRequests" rule per excluded domain
 const CUSTOM_ID_BASE = 900000; // one "block" rule per custom blocklist domain
+
+// Static "allow" rules in rules/fonts.json that exempt icon-font URLs from the
+// text-font blocks. They match without blocking anything, so they never count.
+const ICON_ALLOW_ID_MIN = 5900;
+const ICON_ALLOW_ID_MAX = 5999;
 
 // Resource types we ever block. main_frame is deliberately absent: blocking a
 // top-level navigation would break the page instead of speeding it up.
@@ -60,20 +50,6 @@ async function getSettings() {
         excludedDomains: Array.isArray(stored.excludedDomains) ? stored.excludedDomains : [],
         customDomains: Array.isArray(stored.customDomains) ? stored.customDomains : [],
     };
-}
-
-/** Turn "https://www.Example.com/x" or " Example.com " into "example.com". */
-function normalizeDomain(input) {
-    let value = String(input || '').trim().toLowerCase();
-    if (!value) return '';
-    value = value.replace(/^[a-z]+:\/\//, ''); // strip scheme
-    value = value.split('/')[0]; // strip path
-    value = value.split('?')[0];
-    value = value.split(':')[0]; // strip port
-    value = value.replace(/^\*\./, ''); // strip a leading wildcard label
-    // Reject anything that is not a plausible hostname.
-    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(value)) return '';
-    return value;
 }
 
 /** Enable exactly the rulesets the current settings ask for. */
@@ -175,10 +151,23 @@ const restored = chrome.storage.session.get(null).then((stored) => {
     });
 });
 
+/**
+ * onRuleMatchedDebug fires for allow rules too, and an allow means nothing was
+ * blocked. Two ranges hold them: the icon-font exemptions inside fonts.json, and
+ * the per-site "allowAllRequests" exceptions.
+ */
+function isAllowRule(ruleId) {
+    if (ruleId >= ICON_ALLOW_ID_MIN && ruleId <= ICON_ALLOW_ID_MAX) return true;
+    return ruleId >= ALLOWLIST_ID_BASE && ruleId < CUSTOM_ID_BASE;
+}
+
 async function getCount(tabId) {
     await restored;
     return counts[tabId] || 0;
 }
+
+// The colour never changes, so it is set once per worker rather than per count.
+chrome.action.setBadgeBackgroundColor({ color: '#3b7d4f' });
 
 /**
  * Deliberately synchronous: the map assignment must happen in the same tick as
@@ -191,7 +180,6 @@ function setCount(tabId, count) {
     chrome.action.setBadgeText({ tabId, text: count ? String(count) : '' }).catch(() => {
         // Tab closed between the count and the badge write. Nothing to do.
     });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: '#3b7d4f' }).catch(() => {});
 }
 
 /**
@@ -204,7 +192,7 @@ if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
     chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async (info) => {
         const tabId = info.request.tabId;
         if (tabId < 0) return; // not attached to a tab (e.g. a worker request)
-        if (info.rule.ruleId >= ALLOWLIST_ID_BASE && info.rule.ruleId < CUSTOM_ID_BASE) return;
+        if (isAllowRule(info.rule.ruleId)) return;
         await restored;
         setCount(tabId, (counts[tabId] || 0) + 1); // read and write in one tick
     });
@@ -212,9 +200,12 @@ if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
 
 // Reset on a committed top-level navigation only. tabs.onUpdated with
 // status === 'loading' fires several times per navigation, and a late one wipes
-// trackers that were already blocked earlier in the same page load.
-chrome.webNavigation.onCommitted.addListener(({ tabId, frameId }) => {
-    if (frameId === 0) setCount(tabId, 0);
+// trackers that were already blocked earlier in the same page load. Awaiting the
+// restore first, or a late-resolving restore would put the old count back.
+chrome.webNavigation.onCommitted.addListener(async ({ tabId, frameId }) => {
+    if (frameId !== 0) return;
+    await restored;
+    setCount(tabId, 0);
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {

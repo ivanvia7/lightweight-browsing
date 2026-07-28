@@ -4,6 +4,8 @@
  * turns the settings into declarativeNetRequest rules.
  */
 
+import { DEFAULT_OFF, normalizeDomain } from './shared.js';
+
 const CATEGORY_LABELS = {
     analytics: ['Analytics', 'Google Analytics, Tag Manager, Segment, Mixpanel, Amplitude, HubSpot'],
     ads: ['Ads', 'DoubleClick, Google Ads, Meta Pixel, LinkedIn, TikTok, Bing UET, Criteo, Taboola'],
@@ -22,21 +24,6 @@ const CATEGORY_LABELS = {
         'Third-party avatars and favicons under 100 px, matched by the size in the URL. Saves requests, not much bandwidth, and can misfire on small content images',
     ],
 };
-
-// Mirrors DEFAULT_OFF in background.js: a category with nothing stored yet is on
-// unless it is listed here.
-const DEFAULT_OFF = ['fonts', 'icon-fonts', 'small-images'];
-
-/** Same normalisation as background.js so storage never holds a bad entry. */
-function normalizeDomain(input) {
-    let value = String(input || '').trim().toLowerCase();
-    if (!value) return '';
-    value = value.replace(/^[a-z]+:\/\//, '');
-    value = value.split('/')[0].split('?')[0].split(':')[0];
-    value = value.replace(/^\*\./, '');
-    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(value)) return '';
-    return value;
-}
 
 /** One reusable domain-list widget: add, remove, search. */
 function domainList({ storageKey, listEl, inputEl, addButton, searchEl, errorEl }) {

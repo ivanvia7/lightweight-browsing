@@ -9,8 +9,8 @@
   { "id": 5010, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||cloud.typography.com^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
   { "id": 5011, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||fonts.bunny.net^", "domainType": "thirdParty", "resourceTypes": ["font", "stylesheet", "script", "other"] } },
 
-  { "id": 5901, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/icon?", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.googleapis.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
-  { "id": 5902, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "family=material", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.googleapis.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
-  { "id": 5903, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/s/materialicons", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.gstatic.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
-  { "id": 5904, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/s/materialsymbols", "isUrlFilterCaseSensitive": false, "requestDomains": ["fonts.gstatic.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } }
+  { "id": 5901, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/icon?", "requestDomains": ["fonts.googleapis.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5902, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "family=material", "requestDomains": ["fonts.googleapis.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5903, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/s/materialicons", "requestDomains": ["fonts.gstatic.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } },
+  { "id": 5904, "priority": 2, "action": { "type": "allow" }, "condition": { "urlFilter": "/s/materialsymbols", "requestDomains": ["fonts.gstatic.com"], "resourceTypes": ["font", "stylesheet", "script", "other"] } }
 ]

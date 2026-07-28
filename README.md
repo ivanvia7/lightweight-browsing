@@ -24,7 +24,8 @@ attribute them to.
 
 | File | Role |
 | --- | --- |
-| `manifest.json` | MV3 manifest, permissions, the six static rulesets |
+| `manifest.json` | MV3 manifest, permissions, the seven static rulesets |
+| `shared.js` | Category list, defaults and domain normalisation, imported by the worker and options page |
 | `rules/analytics.json` | Analytics and product-telemetry domains |
 | `rules/ads.json` | Ad networks, retargeting and conversion pixels |
 | `rules/chat-widgets.json` | Support/chat widget bundles |
@@ -102,24 +103,29 @@ popup reloads the tab after the change because rules only apply to requests made
 instant. First-party CSS is never blocked — it *is* the page layout, and no rule here matches
 `stylesheet` from the page's own domain.
 
-Both font categories ship disabled (`DEFAULT_OFF` in `background.js`) because they change how a
-page looks rather than only what it phones home:
+Three categories ship disabled (`DEFAULT_OFF` in `shared.js`) because they change how a page looks
+rather than only what it phones home:
 
 - **Web fonts** — text-font CDNs (Google Fonts, Typekit, Monotype, Bunny). Pages fall back to
   system fonts. Icons keep working.
 - **Icon fonts** — Font Awesome, Material Icons, Iconfont. Icons become empty boxes or blank space.
 
 Material Icons are served from the same hosts as Google's text fonts, and a `urlFilter` cannot
-negate a substring, so the split needs a priority ladder inside `rules/fonts.json`:
+negate a substring, so the split needs a priority ladder:
 
-| Priority | Rule | Effect |
-| --- | --- | --- |
-| 1 | block `\|\|fonts.googleapis.com^`, `\|\|fonts.gstatic.com^` | kills all Google font traffic |
-| 2 | allow `/icon?`, `family=material`, `/s/materialicons`, `/s/materialsymbols` | carves the icon URLs back out |
-| 3 | block the same icon URLs, in `rules/icon-fonts.json` | overrides the allow when that category is on |
+```text
+priority 1  block   ||fonts.googleapis.com^ , ||fonts.gstatic.com^     (fonts.json)
+priority 2  allow   /icon? , family=material , /s/materialicons ,      (fonts.json)
+                    /s/materialsymbols
+priority 3  block   the same four icon patterns                        (icon-fonts.json)
+```
 
 So `fonts` alone strips text fonts and keeps icons; enabling `icon-fonts` as well strips both. The
 per-site exception sits at priority 100 and still beats every rule above.
+
+The priority-2 allow rules live in the 5900–5999 range for one reason beyond tidiness:
+`onRuleMatchedDebug` fires for allow rules too, and `isAllowRule()` in `background.js` uses that
+range to keep them out of the blocked count.
 
 ### Small images
 
@@ -168,13 +174,14 @@ user can drop it.
 
 To add a whole new category: create `rules/<name>.json`, register it under
 `declarative_net_request.rule_resources` in `manifest.json`, append the id to `CATEGORIES` in
-`background.js`, and add a label to `CATEGORY_LABELS` in `options.js`.
+`shared.js` (and to `DEFAULT_OFF` there if it should ship disabled), and add a label to
+`CATEGORY_LABELS` in `options.js`.
 
 ## Notes and limits
 
-- Chrome caps static rules and dynamic rules per extension. The counts here are small (~85
-  static rules), so there is a lot of headroom, but a very large custom blocklist will eventually
-  hit the dynamic-rule limit.
+- Chrome caps static rules and dynamic rules per extension. The counts here are small (120 static
+  rules, 6 of them regex), so there is a lot of headroom, but a very large custom blocklist will
+  eventually hit the dynamic-rule limit.
 - Only network requests are blocked. Inline tracking code served by the page itself is untouched,
   by design, since cutting first-party scripts is how ad blockers break sites.
 - No icons are bundled, so Chrome shows the default action icon. Drop 16/32/48/128 px PNGs in an
