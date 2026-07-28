@@ -4,9 +4,15 @@
 import { DEFAULT_OFF, normalizeDomain } from './shared.js';
 
 const CATEGORY_LABELS = {
-    analytics: ['Analytics', 'Google Analytics, Tag Manager, Segment, Mixpanel, Amplitude, HubSpot'],
+    analytics: [
+        'Analytics',
+        'Google Analytics, Tag Manager, Segment, Mixpanel, Amplitude, HubSpot, GrowthBook, FirstPromoter',
+    ],
     ads: ['Ads', 'DoubleClick, Google Ads, Meta Pixel, LinkedIn, TikTok, Bing UET, Criteo, Taboola'],
-    'chat-widgets': ['Chat widgets', 'Intercom, Drift, Zendesk, Tawk.to, LiveChat, Crisp'],
+    'chat-widgets': [
+        'Chat widgets and product tours',
+        'Intercom, Drift, Zendesk, Tawk.to, LiveChat, Crisp, Flows',
+    ],
     'session-recording': ['Session recording', 'Hotjar, Microsoft Clarity, FullStory, LogRocket, Smartlook'],
     fonts: [
         'Web fonts (off by default)',

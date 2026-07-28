@@ -13,5 +13,6 @@
   { "id": 3012, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||snapengage.com^", "domainType": "thirdParty", "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "sub_frame", "websocket", "other"] } },
   { "id": 3013, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||purechat.com^", "domainType": "thirdParty", "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "sub_frame", "websocket", "other"] } },
   { "id": 3014, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||tidio.co^", "domainType": "thirdParty", "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "sub_frame", "websocket", "other"] } },
-  { "id": 3015, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||front.com^", "domainType": "thirdParty", "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "sub_frame", "websocket", "other"] } }
+  { "id": 3015, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||front.com^", "domainType": "thirdParty", "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "sub_frame", "websocket", "other"] } },
+  { "id": 3016, "priority": 1, "action": { "type": "block" }, "condition": { "urlFilter": "||flows-cloud.com^", "domainType": "thirdParty", "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "sub_frame", "websocket", "other"] } }
 ]

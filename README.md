@@ -28,7 +28,7 @@ attribute them to.
 | `shared.js` | Category list, defaults and domain normalisation, imported by the worker and options page |
 | `rules/analytics.json` | Analytics and product-telemetry domains |
 | `rules/ads.json` | Ad networks, retargeting and conversion pixels |
-| `rules/chat-widgets.json` | Support/chat widget bundles |
+| `rules/chat-widgets.json` | Support/chat widget and product-tour bundles |
 | `rules/session-recording.json` | Session replay and heatmap trackers |
 | `rules/fonts.json` | Third-party text-font CDNs, plus allow rules that spare icon fonts. **Off by default** |
 | `rules/icon-fonts.json` | Icon-font CDNs (Font Awesome, Material Icons). **Off by default** |
@@ -180,7 +180,7 @@ To add a whole new category: create `rules/<name>.json`, register it under
 
 ## Notes and limits
 
-- Chrome caps static rules and dynamic rules per extension. The counts here are small (120 static
+- Chrome caps static rules and dynamic rules per extension. The counts here are small (123 static
   rules, 6 of them regex), so there is a lot of headroom, but a very large custom blocklist will
   eventually hit the dynamic-rule limit.
 - Only network requests are blocked. Inline tracking code served by the page itself is untouched,
